@@ -8,3 +8,26 @@ documents
 
 # Sphinx documentation build artifacts
 docs/_build/
+
+# Dependencies
+node_modules/
+ 
+# Compiled output
+dist/
+ 
+# Source maps
+*.js.map
+ 
+# OS files
+.DS_Store
+Thumbs.db
+ 
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+ 
+# npm debug logs
+npm-debug.log*
+ 

@@ -1,0 +1,14 @@
+{
+  "name": "audio-insight-extension",
+  "version": "0.2.0",
+  "description": "Chrome extension for audio transcription, topic segmentation, and semantic search.",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/chrome": "^0.0.268"
+  }
+}
