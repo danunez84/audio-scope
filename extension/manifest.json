@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Audio Insight",
+  "version": "0.2.0",
+  "description": "Transcribe, segment, summarize, and semantically search audio content.",
+  "permissions": [
+    "activeTab",
+    "sidePanel"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Audio Insight"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
