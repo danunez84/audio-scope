@@ -1,33 +1,27 @@
-# ============================================
-# Audio Insight — Root .gitignore
-# ============================================
- 
-# --- Python (backend) ---
+# Python (backend)
 __pycache__/
 *.pyc
 *.pyo
-venv/
+venv*/
 .env
 downloads/
- 
-# --- Node (extension) ---
+
+# Node (extension)
 node_modules/
 dist/
 *.js.map
 package-lock.json
- 
-# --- OS ---
+
+# OS
 .DS_Store
 Thumbs.db
- 
-# --- Editors ---
+
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
- 
-# --- Logs ---
+
+# Logs
 npm-debug.log*
 *.log
- 
- venv*/
