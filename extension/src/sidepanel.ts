@@ -14,24 +14,44 @@ const CONFIG: AppConfig = {
 };
 
 
-// --- DOM Elements ---
-const urlInput      = document.getElementById("urlInput") as HTMLInputElement;
-const analyzeBtn    = document.getElementById("analyzeBtn") as HTMLButtonElement;
-const currentTabBtn = document.getElementById("currentTabBtn") as HTMLButtonElement;
-
-
 // --- Types ---
 interface ValidationResult {
   valid: boolean;
   message?: string;
 }
 
+interface DownloadResponse {
+  status: string;
+  title: string;
+  duration: number;
+  file_id: string;
+}
+
+interface AnalyzeResponse {
+  status: string;
+  file_id: string;
+  title: string;
+  duration: number;
+  steps: {
+    download: string;
+    transcription: string;
+    segmentation: string;
+    summarization: string;
+    indexing: string;
+  };
+}
+
+
+// --- DOM Elements ---
+const urlInput      = document.getElementById("urlInput") as HTMLInputElement;
+const analyzeBtn    = document.getElementById("analyzeBtn") as HTMLButtonElement;
+const currentTabBtn = document.getElementById("currentTabBtn") as HTMLButtonElement;
+
 
 // --- Validation ---
 
 /**
  * Validates the given URL string.
- * Returns a result object with valid flag and optional error message.
  */
 function validateUrl(input: string): ValidationResult {
   const trimmed = input.trim();
@@ -54,7 +74,7 @@ function validateUrl(input: string): ValidationResult {
 }
 
 /**
- * Checks if the URL is from a supported source (e.g. YouTube).
+ * Checks if the URL is from a supported source.
  */
 function isSupportedSource(url: string): boolean {
   try {
@@ -66,10 +86,31 @@ function isSupportedSource(url: string): boolean {
 }
 
 
+// --- API ---
+
+/**
+ * Calls the backend /analyze endpoint.
+ */
+async function callAnalyzeApi(url: string): Promise<AnalyzeResponse> {
+  const response = await fetch(`${CONFIG.apiBaseUrl}/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Server error");
+  }
+
+  return response.json();
+}
+
+
 // --- UI Helpers ---
 
 /**
- * Shows a validation error on the URL input field.
+ * Shows a validation error on the URL input.
  */
 function showValidationError(message: string): void {
   urlInput.classList.add("is-invalid");
@@ -88,10 +129,107 @@ function showValidationError(message: string): void {
 }
 
 /**
- * Clears any validation error on the URL input field.
+ * Clears validation errors.
  */
 function clearValidationError(): void {
   urlInput.classList.remove("is-invalid");
+}
+
+/**
+ * Sets the analyze button to a loading state.
+ */
+function setLoading(loading: boolean): void {
+  analyzeBtn.disabled = loading;
+  currentTabBtn.disabled = loading;
+  urlInput.disabled = loading;
+
+  if (loading) {
+    analyzeBtn.innerHTML = `
+      <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+      Analyzing...
+    `;
+  } else {
+    analyzeBtn.innerHTML = `
+      <i class="bi bi-waveform me-2"></i>
+      Analyze audio
+    `;
+  }
+}
+
+/**
+ * Shows the result in the side panel after a successful analysis.
+ */
+function showResult(data: AnalyzeResponse): void {
+  const main = document.querySelector(".app-body") as HTMLElement;
+
+  main.innerHTML = `
+    <div class="result-card">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-check-circle-fill text-success"></i>
+        <span class="fw-semibold">Download complete</span>
+      </div>
+
+      <div class="result-meta">
+        <p class="result-title">${data.title}</p>
+        <p class="result-duration">
+          <i class="bi bi-clock me-1"></i>
+          ${formatDuration(data.duration)}
+        </p>
+      </div>
+
+      <div class="pipeline-status mt-3">
+        <p class="label-muted mb-2">Pipeline status</p>
+        ${Object.entries(data.steps).map(([step, status]) => `
+          <div class="d-flex align-items-center justify-content-between py-1">
+            <span class="step-name">${formatStepName(step)}</span>
+            <span class="badge ${status === 'done' ? 'badge-supported' : 'badge-default'}">
+              ${status}
+            </span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Shows an error message in the side panel.
+ */
+function showError(message: string): void {
+  const main = document.querySelector(".app-body") as HTMLElement;
+  const currentContent = main.innerHTML;
+
+  // Insert error alert at the top, keep the form
+  const alertHtml = `
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>${message}</span>
+    </div>
+  `;
+
+  // Remove any existing alert first
+  const existingAlert = main.querySelector(".alert");
+  if (existingAlert) existingAlert.remove();
+
+  main.insertAdjacentHTML("afterbegin", alertHtml);
+}
+
+/**
+ * Formats seconds into a readable duration string.
+ */
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
+}
+
+/**
+ * Formats a pipeline step key into a readable name.
+ */
+function formatStepName(step: string): string {
+  return step.charAt(0).toUpperCase() + step.slice(1);
 }
 
 
@@ -100,7 +238,7 @@ function clearValidationError(): void {
 /**
  * Handles the "Analyze audio" button click.
  */
-function handleAnalyze(): void {
+async function handleAnalyze(): Promise<void> {
   const url = urlInput.value.trim();
   const result = validateUrl(url);
 
@@ -109,22 +247,25 @@ function handleAnalyze(): void {
     return;
   }
 
-  const supported = isSupportedSource(url);
+  // Remove any previous error
+  const existingAlert = document.querySelector(".alert");
+  if (existingAlert) existingAlert.remove();
 
-  if (!supported) {
-    console.warn("URL is not from a known supported source:", url);
-    // Still allow — might be a direct audio URL
+  setLoading(true);
+
+  try {
+    const data = await callAnalyzeApi(url);
+    showResult(data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Something went wrong.";
+    showError(message);
+  } finally {
+    setLoading(false);
   }
-
-  console.log("Analyzing URL:", url);
-  console.log("Supported source:", supported);
-
-  // TODO: Send URL to backend API and switch to processing screen
 }
 
 /**
  * Handles the "Use current tab URL" button click.
- * Reads the active tab's URL and populates the input.
  */
 async function handleUseCurrentTab(): Promise<void> {
   try {
@@ -148,7 +289,6 @@ analyzeBtn.addEventListener("click", handleAnalyze);
 currentTabBtn.addEventListener("click", handleUseCurrentTab);
 urlInput.addEventListener("input", clearValidationError);
 
-// Allow Enter key to trigger analysis
 urlInput.addEventListener("keydown", (event: KeyboardEvent): void => {
   if (event.key === "Enter") {
     handleAnalyze();

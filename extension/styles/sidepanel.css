@@ -116,6 +116,11 @@ body {
   transform: scale(0.98);
 }
 
+.btn-analyze:disabled {
+  background-color: var(--ai-gray-400);
+  cursor: not-allowed;
+}
+
 .btn-outline-secondary {
   font-size: 13px;
   color: var(--ai-gray-600);
@@ -126,6 +131,11 @@ body {
   background-color: var(--ai-gray-50);
   color: var(--ai-gray-600);
   border-color: var(--ai-gray-100);
+}
+
+.btn-outline-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 
@@ -167,4 +177,46 @@ body {
   font-size: 12px;
   color: var(--ai-gray-600);
   line-height: 1.6;
+}
+
+
+/* --- Result View --- */
+.result-card {
+  background-color: var(--ai-gray-50);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.result-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2C2C2A;
+  margin: 0 0 4px;
+}
+
+.result-duration {
+  font-size: 12px;
+  color: var(--ai-gray-400);
+  margin: 0;
+}
+
+.result-meta {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ai-gray-100);
+}
+
+.pipeline-status .step-name {
+  font-size: 13px;
+  color: var(--ai-gray-600);
+}
+
+
+/* --- Alert --- */
+.alert-danger {
+  font-size: 13px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  border-radius: 8px;
+  padding: 12px 16px;
 }

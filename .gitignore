@@ -1,33 +1,33 @@
-__pycache__
+# ============================================
+# Audio Insight — Root .gitignore
+# ============================================
+ 
+# --- Python (backend) ---
+__pycache__/
+*.pyc
+*.pyo
+venv/
 .env
-.vscode
-!.vscode/settings.json
-llama.cpp
-models
-documents
-
-# Sphinx documentation build artifacts
-docs/_build/
-
-# Dependencies
+downloads/
+ 
+# --- Node (extension) ---
 node_modules/
- 
-# Compiled output
 dist/
- 
-# Source maps
 *.js.map
+package-lock.json
  
-# OS files
+# --- OS ---
 .DS_Store
 Thumbs.db
  
-# Editor files
+# --- Editors ---
 .vscode/
 .idea/
 *.swp
 *.swo
  
-# npm debug logs
+# --- Logs ---
 npm-debug.log*
+*.log
  
+ venv*/
