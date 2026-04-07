@@ -180,32 +180,94 @@ body {
 }
 
 
-/* --- Result View --- */
-.result-card {
-  background-color: var(--ai-gray-50);
-  border-radius: 8px;
-  padding: 16px;
+/* --- Result Header --- */
+.result-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ai-gray-100);
 }
 
 .result-title {
   font-size: 15px;
   font-weight: 600;
   color: #2C2C2A;
-  margin: 0 0 4px;
+  margin: 0 0 8px;
 }
 
-.result-duration {
+.result-meta-row {
+  display: flex;
+  gap: 16px;
+}
+
+.result-meta-item {
   font-size: 12px;
   color: var(--ai-gray-400);
+}
+
+
+/* --- Full Transcript --- */
+.transcript-section {
+  margin-bottom: 20px;
+}
+
+.full-transcript-box {
+  background-color: var(--ai-gray-50);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ai-gray-600);
+}
+
+
+/* --- Segments --- */
+.segments-section {
+  margin-bottom: 20px;
+}
+
+.segment-card {
+  border: 1px solid var(--ai-gray-100);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.segment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.segment-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.segment-speaker {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+}
+
+.segment-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2C2C2A;
   margin: 0;
 }
 
-.result-meta {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--ai-gray-100);
+
+/* --- Pipeline Status --- */
+.pipeline-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--ai-gray-100);
 }
 
-.pipeline-status .step-name {
+.step-name {
   font-size: 13px;
   color: var(--ai-gray-600);
 }

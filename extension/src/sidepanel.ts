@@ -20,11 +20,11 @@ interface ValidationResult {
   message?: string;
 }
 
-interface DownloadResponse {
-  status: string;
-  title: string;
-  duration: number;
-  file_id: string;
+interface Segment {
+  start: number;
+  end: number;
+  speaker: number | null;
+  content: string;
 }
 
 interface AnalyzeResponse {
@@ -32,6 +32,11 @@ interface AnalyzeResponse {
   file_id: string;
   title: string;
   duration: number;
+  transcription: {
+    full_text: string;
+    segments: Segment[];
+    processing_time: number;
+  };
   steps: {
     download: string;
     transcription: string;
@@ -157,65 +162,16 @@ function setLoading(loading: boolean): void {
 }
 
 /**
- * Shows the result in the side panel after a successful analysis.
+ * Formats seconds into a timestamp string like "1:23" or "0:05".
  */
-function showResult(data: AnalyzeResponse): void {
-  const main = document.querySelector(".app-body") as HTMLElement;
-
-  main.innerHTML = `
-    <div class="result-card">
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <i class="bi bi-check-circle-fill text-success"></i>
-        <span class="fw-semibold">Download complete</span>
-      </div>
-
-      <div class="result-meta">
-        <p class="result-title">${data.title}</p>
-        <p class="result-duration">
-          <i class="bi bi-clock me-1"></i>
-          ${formatDuration(data.duration)}
-        </p>
-      </div>
-
-      <div class="pipeline-status mt-3">
-        <p class="label-muted mb-2">Pipeline status</p>
-        ${Object.entries(data.steps).map(([step, status]) => `
-          <div class="d-flex align-items-center justify-content-between py-1">
-            <span class="step-name">${formatStepName(step)}</span>
-            <span class="badge ${status === 'done' ? 'badge-supported' : 'badge-default'}">
-              ${status}
-            </span>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
+function formatTimestamp(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 /**
- * Shows an error message in the side panel.
- */
-function showError(message: string): void {
-  const main = document.querySelector(".app-body") as HTMLElement;
-  const currentContent = main.innerHTML;
-
-  // Insert error alert at the top, keep the form
-  const alertHtml = `
-    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>${message}</span>
-    </div>
-  `;
-
-  // Remove any existing alert first
-  const existingAlert = main.querySelector(".alert");
-  if (existingAlert) existingAlert.remove();
-
-  main.insertAdjacentHTML("afterbegin", alertHtml);
-}
-
-/**
- * Formats seconds into a readable duration string.
+ * Formats seconds into a readable duration string like "3m 20s".
  */
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -226,10 +182,121 @@ function formatDuration(seconds: number): string {
 }
 
 /**
- * Formats a pipeline step key into a readable name.
+ * Builds the HTML for a single transcript segment.
  */
-function formatStepName(step: string): string {
-  return step.charAt(0).toUpperCase() + step.slice(1);
+function buildSegmentHtml(segment: Segment): string {
+  const timeRange = `${formatTimestamp(segment.start)} — ${formatTimestamp(segment.end)}`;
+  const speaker = segment.speaker !== null ? `Speaker ${segment.speaker}` : "";
+
+  return `
+    <div class="segment-card">
+      <div class="segment-header">
+        <span class="segment-time">${timeRange}</span>
+        ${speaker ? `<span class="segment-speaker">${speaker}</span>` : ""}
+      </div>
+      <p class="segment-content">${segment.content}</p>
+    </div>
+  `;
+}
+
+/**
+ * Shows the full results in the side panel.
+ */
+function showResult(data: AnalyzeResponse): void {
+  const main = document.querySelector(".app-body") as HTMLElement;
+  const footer = document.querySelector(".app-footer") as HTMLElement;
+
+  // Hide the footer info box
+  if (footer) footer.style.display = "none";
+
+  // Build segments HTML
+  const segmentsHtml = data.transcription.segments
+    .map(buildSegmentHtml)
+    .join("");
+
+  main.innerHTML = `
+    <!-- Header info -->
+    <div class="result-header">
+      <p class="result-title">${data.title}</p>
+      <div class="result-meta-row">
+        <span class="result-meta-item">
+          <i class="bi bi-clock me-1"></i>
+          ${formatDuration(data.duration)}
+        </span>
+        <span class="result-meta-item">
+          <i class="bi bi-mic me-1"></i>
+          ${data.transcription.segments.length} segments
+        </span>
+      </div>
+    </div>
+
+    <!-- Full transcript (collapsible) -->
+    <div class="transcript-section">
+      <button
+        class="btn btn-sm btn-outline-secondary w-100 mb-3"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#fullTranscript"
+      >
+        <i class="bi bi-text-left me-1"></i>
+        Show full transcript
+      </button>
+      <div class="collapse" id="fullTranscript">
+        <div class="full-transcript-box">
+          ${data.transcription.full_text}
+        </div>
+      </div>
+    </div>
+
+    <!-- Segments -->
+    <div class="segments-section">
+      <p class="label-muted mb-2">Transcript segments</p>
+      ${segmentsHtml}
+    </div>
+
+    <!-- Pipeline status -->
+    <div class="pipeline-section">
+      <p class="label-muted mb-2">Pipeline status</p>
+      ${Object.entries(data.steps).map(([step, status]) => `
+        <div class="d-flex align-items-center justify-content-between py-1">
+          <span class="step-name">${step.charAt(0).toUpperCase() + step.slice(1)}</span>
+          <span class="badge ${status === "done" ? "badge-supported" : "badge-default"}">
+            ${status}
+          </span>
+        </div>
+      `).join("")}
+    </div>
+
+    <!-- Analyze another -->
+    <button class="btn btn-outline-secondary w-100 mt-3" id="newAnalysisBtn">
+      <i class="bi bi-arrow-left me-1"></i>
+      Analyze another
+    </button>
+  `;
+
+  // "Analyze another" reloads the panel to start fresh
+  document.getElementById("newAnalysisBtn")?.addEventListener("click", () => {
+    location.reload();
+  });
+}
+
+/**
+ * Shows an error message in the side panel.
+ */
+function showError(message: string): void {
+  const main = document.querySelector(".app-body") as HTMLElement;
+
+  const alertHtml = `
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>${message}</span>
+    </div>
+  `;
+
+  const existingAlert = main.querySelector(".alert");
+  if (existingAlert) existingAlert.remove();
+
+  main.insertAdjacentHTML("afterbegin", alertHtml);
 }
 
 
@@ -247,7 +314,6 @@ async function handleAnalyze(): Promise<void> {
     return;
   }
 
-  // Remove any previous error
   const existingAlert = document.querySelector(".alert");
   if (existingAlert) existingAlert.remove();
 
