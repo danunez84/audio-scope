@@ -19,6 +19,12 @@ AUDIO_FORMAT = "mp3"
 MAX_AUDIO_DURATION = 3600  # 1 hour max (in seconds)
 
 
+# --- Transcription (Colab) ---
+# The ngrok URL from the Colab notebook running VibeVoice-ASR.
+# Update this each time you restart the Colab notebook.
+TRANSCRIPTION_API_URL = "https://untransported-unfeasibly-dora.ngrok-free.dev"
+
+
 # --- API ---
 API_HOST = "0.0.0.0"
 API_PORT = 8000
