@@ -10,6 +10,7 @@ from app.config import CORS_ORIGINS
 from app.models import AnalyzeRequest, DownloadResponse, ErrorResponse, HealthResponse
 from app.downloader import download_audio, cleanup_audio
 from app.transcriber import transcribe_audio, check_colab_health
+from app.segmenter import segment_into_topics
 
 
 # --- App Setup ---
@@ -28,6 +29,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Helper Functions ---
+
+def build_segments_response(segments: list) -> list[dict]:
+    """Converts Segment objects into JSON-serializable dictionaries."""
+    return [
+        {
+            "start": seg.start,
+            "end": seg.end,
+            "speaker": seg.speaker,
+            "content": seg.content,
+        }
+        for seg in segments
+    ]
+
+
+def build_topics_response(topics: list) -> list[dict]:
+    """Converts Topic objects into JSON-serializable dictionaries."""
+    return [
+        {
+            "topic_number": i + 1,
+            "start": topic.start,
+            "end": topic.end,
+            "speakers": topic.speakers,
+            "sentences": [
+                {"text": s.text, "start": s.start, "end": s.end, "speaker": s.speaker}
+                for s in topic.sentences
+            ],
+        }
+        for i, topic in enumerate(topics)
+    ]
 
 
 # --- Endpoints ---
@@ -71,10 +104,10 @@ async def download_audio_endpoint(request: AnalyzeRequest):
 async def analyze_audio(request: AnalyzeRequest):
     """
     Full pipeline: download → transcribe → segment → summarize → index.
-    Currently implements download + transcription.
+    Currently implements download + transcription + segmentation.
     """
     try:
-        # Step 1: Download audio (for local use in later pipeline steps)
+        # Step 1: Download audio
         print(f"[STEP 1] Downloading audio from: {request.url}")
         download_result = download_audio(request.url)
 
@@ -97,19 +130,17 @@ async def analyze_audio(request: AnalyzeRequest):
 
         print(f"[STEP 2] Transcription complete in {transcription_result.processing_time}s")
 
-        # Build segment data for the response
-        segments = []
-        for seg in transcription_result.segments:
-            segments.append({
-                "start": seg.start,
-                "end": seg.end,
-                "speaker": seg.speaker,
-                "content": seg.content,
-            })
+        # Step 3: Topic segmentation
+        print(f"[STEP 3] Segmenting into topics...")
+        topics = segment_into_topics(transcription_result.segments)
+        print(f"[STEP 3] Found {len(topics)} topics")
 
-        print(f"[DONE] Returning {len(segments)} segments")
+        # Build response data
+        segments_data = build_segments_response(transcription_result.segments)
+        topics_data = build_topics_response(topics)
 
-        # TODO: Step 3 — Topic segmentation
+        print(f"[DONE] Returning {len(segments_data)} segments, {len(topics_data)} topics")
+
         # TODO: Step 4 — Summarization
         # TODO: Step 5 — Build search index
 
@@ -120,13 +151,14 @@ async def analyze_audio(request: AnalyzeRequest):
             "duration": download_result.duration,
             "transcription": {
                 "full_text": transcription_result.full_text,
-                "segments": segments,
+                "segments": segments_data,
                 "processing_time": transcription_result.processing_time,
             },
+            "topics": topics_data,
             "steps": {
                 "download": "done",
                 "transcription": "done",
-                "segmentation": "pending",
+                "segmentation": "done",
                 "summarization": "pending",
                 "indexing": "pending",
             },
