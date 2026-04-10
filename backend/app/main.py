@@ -11,6 +11,7 @@ from app.models import AnalyzeRequest, DownloadResponse, ErrorResponse, HealthRe
 from app.downloader import download_audio, cleanup_audio
 from app.transcriber import transcribe_audio, check_colab_health
 from app.segmenter import segment_into_topics
+from app.summarizer import summarize_topics
 
 
 # --- App Setup ---
@@ -46,7 +47,7 @@ def build_segments_response(segments: list) -> list[dict]:
     ]
 
 
-def build_topics_response(topics: list) -> list[dict]:
+def build_topics_response(topics: list, summaries: list[str] = None) -> list[dict]:
     """Converts Topic objects into JSON-serializable dictionaries."""
     return [
         {
@@ -54,6 +55,7 @@ def build_topics_response(topics: list) -> list[dict]:
             "start": topic.start,
             "end": topic.end,
             "speakers": topic.speakers,
+            "summary": summaries[i] if summaries else "",
             "sentences": [
                 {"text": s.text, "start": s.start, "end": s.end, "speaker": s.speaker}
                 for s in topic.sentences
@@ -104,7 +106,6 @@ async def download_audio_endpoint(request: AnalyzeRequest):
 async def analyze_audio(request: AnalyzeRequest):
     """
     Full pipeline: download → transcribe → segment → summarize → index.
-    Currently implements download + transcription + segmentation.
     """
     try:
         # Step 1: Download audio
@@ -135,13 +136,17 @@ async def analyze_audio(request: AnalyzeRequest):
         topics = segment_into_topics(transcription_result.segments)
         print(f"[STEP 3] Found {len(topics)} topics")
 
+        # Step 4: Summarization
+        print(f"[STEP 4] Generating summaries...")
+        summaries = summarize_topics(topics)
+        print(f"[STEP 4] Generated {len(summaries)} summaries")
+
         # Build response data
         segments_data = build_segments_response(transcription_result.segments)
-        topics_data = build_topics_response(topics)
+        topics_data = build_topics_response(topics, summaries)
 
         print(f"[DONE] Returning {len(segments_data)} segments, {len(topics_data)} topics")
 
-        # TODO: Step 4 — Summarization
         # TODO: Step 5 — Build search index
 
         return {
@@ -159,7 +164,7 @@ async def analyze_audio(request: AnalyzeRequest):
                 "download": "done",
                 "transcription": "done",
                 "segmentation": "done",
-                "summarization": "pending",
+                "summarization": "done",
                 "indexing": "pending",
             },
         }

@@ -59,6 +59,7 @@ interface Topic {
   start: number;
   end: number;
   speakers: number[];
+  summary: string;
   sentences: TopicSentence[];
 }
 
@@ -236,6 +237,7 @@ function buildTopicHtml(topic: Topic): string {
         <span class="segment-time">${timeRange}</span>
       </div>
       ${speakers ? `<p class="segment-speaker">${speakers}</p>` : ""}
+      ${topic.summary ? `<p class="topic-summary">${topic.summary}</p>` : ""}
       <div class="topic-sentences">
         ${sentencesHtml}
       </div>

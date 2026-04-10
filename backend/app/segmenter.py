@@ -6,7 +6,7 @@ Splits transcripts into topics using sentence embeddings and cosine similarity.
 import numpy as np
 from dataclasses import dataclass, field
 from nltk.tokenize import sent_tokenize
-from sentence_transformers import SentenceTransformer
+from app.embeddings import model as _embedding_model
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -28,11 +28,6 @@ class Topic:
     end: float
     sentences: list[Sentence] = field(default_factory=list)
     speakers: list[int] = field(default_factory=list)
-
-
-# --- Embedding Model (loaded once) ---
-
-_embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 # --- Functions ---

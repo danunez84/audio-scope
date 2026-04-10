@@ -319,3 +319,14 @@ body {
   color: #2C2C2A;
   margin: 0 0 4px;
 }
+
+.topic-summary {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  line-height: 1.5;
+}
