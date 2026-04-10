@@ -282,3 +282,40 @@ body {
   border-radius: 8px;
   padding: 12px 16px;
 }
+
+/* --- Topics --- */
+.topics-section {
+  margin-bottom: 20px;
+}
+
+.topic-card {
+  border: 1px solid var(--ai-gray-100);
+  border-left: 3px solid var(--ai-teal-400);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.topic-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-teal-800);
+}
+
+.topic-sentences {
+  margin-top: 8px;
+}
+
+.topic-sentence {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2C2C2A;
+  margin: 0 0 4px;
+}

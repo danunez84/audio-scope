@@ -44,6 +44,22 @@ interface AnalyzeResponse {
     summarization: string;
     indexing: string;
   };
+  topics: Topic[];
+}
+
+interface TopicSentence {
+  text: string;
+  start: number;
+  end: number;
+  speaker: number | null;
+}
+
+interface Topic {
+  topic_number: number;
+  start: number;
+  end: number;
+  speakers: number[];
+  sentences: TopicSentence[];
 }
 
 
@@ -199,6 +215,35 @@ function buildSegmentHtml(segment: Segment): string {
   `;
 }
 
+
+/**
+ * Builds the HTML for a single topic card.
+ */
+function buildTopicHtml(topic: Topic): string {
+  const timeRange = `${formatTimestamp(topic.start)} — ${formatTimestamp(topic.end)}`;
+  const speakers = topic.speakers.length > 0
+    ? topic.speakers.map(s => `Speaker ${s}`).join(", ")
+    : "";
+
+  const sentencesHtml = topic.sentences
+    .map(s => `<p class="topic-sentence">${s.text}</p>`)
+    .join("");
+
+  return `
+    <div class="topic-card">
+      <div class="topic-header">
+        <span class="topic-number">Topic ${topic.topic_number}</span>
+        <span class="segment-time">${timeRange}</span>
+      </div>
+      ${speakers ? `<p class="segment-speaker">${speakers}</p>` : ""}
+      <div class="topic-sentences">
+        ${sentencesHtml}
+      </div>
+    </div>
+  `;
+}
+
+
 /**
  * Shows the full results in the side panel.
  */
@@ -248,10 +293,26 @@ function showResult(data: AnalyzeResponse): void {
       </div>
     </div>
 
-    <!-- Segments -->
+<!-- Topics -->
+    <div class="topics-section">
+      <p class="label-muted mb-2">Topics (${data.topics.length} found)</p>
+      ${data.topics.map(buildTopicHtml).join("")}
+    </div>
+
+    <!-- Raw segments (collapsible) -->
     <div class="segments-section">
-      <p class="label-muted mb-2">Transcript segments</p>
-      ${segmentsHtml}
+      <button
+        class="btn btn-sm btn-outline-secondary w-100 mb-3"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#rawSegments"
+      >
+        <i class="bi bi-list me-1"></i>
+        Show raw transcript segments
+      </button>
+      <div class="collapse" id="rawSegments">
+        ${segmentsHtml}
+      </div>
     </div>
 
     <!-- Pipeline status -->
