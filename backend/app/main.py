@@ -47,11 +47,12 @@ def build_segments_response(segments: list) -> list[dict]:
     ]
 
 
-def build_topics_response(topics: list, summaries: list[str] = None) -> list[dict]:
+def build_topics_response(topics: list, summaries: list[str] = None, titles: list[str] = None) -> list[dict]:
     """Converts Topic objects into JSON-serializable dictionaries."""
     return [
         {
             "topic_number": i + 1,
+            "title": titles[i] if titles else f"Topic {i + 1}",
             "start": topic.start,
             "end": topic.end,
             "speakers": topic.speakers,
@@ -138,12 +139,12 @@ async def analyze_audio(request: AnalyzeRequest):
 
         # Step 4: Summarization
         print(f"[STEP 4] Generating summaries...")
-        summaries = summarize_topics(topics)
+        summaries, titles = summarize_topics(topics)
         print(f"[STEP 4] Generated {len(summaries)} summaries")
 
         # Build response data
         segments_data = build_segments_response(transcription_result.segments)
-        topics_data = build_topics_response(topics, summaries)
+        topics_data = build_topics_response(topics, summaries, titles)
 
         print(f"[DONE] Returning {len(segments_data)} segments, {len(topics_data)} topics")
 
