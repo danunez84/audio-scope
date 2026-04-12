@@ -12,6 +12,8 @@ from app.downloader import download_audio, cleanup_audio
 from app.transcriber import transcribe_audio, check_colab_health
 from app.segmenter import segment_into_topics
 from app.summarizer import summarize_topics
+from app.search import search_sentences
+from app.segmenter import segment_into_topics, split_into_sentences
 
 
 # --- App Setup ---
@@ -148,7 +150,14 @@ async def analyze_audio(request: AnalyzeRequest):
 
         print(f"[DONE] Returning {len(segments_data)} segments, {len(topics_data)} topics")
 
-        # TODO: Step 5 — Build search index
+        # Step 5: Prepare sentences for search
+        print(f"[STEP 5] Building search index...")
+        all_sentences = split_into_sentences(transcription_result.segments)
+        print(f"[STEP 5] Indexed {len(all_sentences)} sentences")
+
+        # Store for search
+        global _current_sentences
+        _current_sentences = all_sentences
 
         return {
             "status": "completed",
@@ -166,7 +175,7 @@ async def analyze_audio(request: AnalyzeRequest):
                 "transcription": "done",
                 "segmentation": "done",
                 "summarization": "done",
-                "indexing": "pending",
+                "indexing": "done",
             },
         }
 
@@ -177,3 +186,37 @@ async def analyze_audio(request: AnalyzeRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Store the latest sentences for search (simple in-memory approach)
+_current_sentences = []
+
+
+@app.post("/search")
+async def search_audio(request: dict):
+    """
+    Searches the most recently analyzed transcript by meaning.
+    """
+    query = request.get("query", "")
+
+    if not _current_sentences:
+        raise HTTPException(status_code=400, detail="No transcript loaded. Run /analyze first.")
+
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="Query is required.")
+
+    results = search_sentences(query, _current_sentences)
+
+    return {
+        "query": query,
+        "results": [
+            {
+                "text": r.text,
+                "start": r.start,
+                "end": r.end,
+                "speaker": r.speaker,
+                "score": r.score,
+            }
+            for r in results
+        ],
+    }
