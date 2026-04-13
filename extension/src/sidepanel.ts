@@ -64,6 +64,19 @@ interface Topic {
   sentences: TopicSentence[];
 }
 
+interface SearchResult {
+  text: string;
+  start: number;
+  end: number;
+  speaker: number | null;
+  score: number;
+}
+
+interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+}
+
 
 // --- DOM Elements ---
 const urlInput      = document.getElementById("urlInput") as HTMLInputElement;
@@ -246,6 +259,61 @@ function buildTopicHtml(topic: Topic): string {
   `;
 }
 
+/**
+ * Builds the HTML for a search result.
+ */
+function buildSearchResultHtml(result: SearchResult): string {
+  const time = formatTimestamp(result.start);
+  const score = Math.round(result.score * 100);
+
+  return `
+    <div class="search-result-card">
+      <div class="search-result-header">
+        <span class="segment-time">${time}</span>
+        <span class="search-score">${score}% match</span>
+      </div>
+      <p class="segment-content">${result.text}</p>
+    </div>
+  `;
+}
+
+
+/**
+ * Handles search — calls the API and displays results.
+ */
+async function handleSearch(): Promise<void> {
+  const searchInput = document.getElementById("searchInput") as HTMLInputElement;
+  const searchResults = document.getElementById("searchResults") as HTMLElement;
+  const query = searchInput.value.trim();
+
+  if (!query) return;
+
+  searchResults.innerHTML = `
+    <div class="d-flex align-items-center gap-2 py-3">
+      <span class="spinner-border spinner-border-sm" role="status"></span>
+      <span>Searching...</span>
+    </div>
+  `;
+
+  try {
+    const data = await callSearchApi(query);
+
+    if (data.results.length === 0) {
+      searchResults.innerHTML = `<p class="text-muted py-2">No results found.</p>`;
+      return;
+    }
+
+    searchResults.innerHTML = data.results
+      .map(buildSearchResultHtml)
+      .join("");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Search failed.";
+    searchResults.innerHTML = `
+      <div class="alert alert-danger">${message}</div>
+    `;
+  }
+}
+
 
 /**
  * Shows the full results in the side panel.
@@ -296,6 +364,23 @@ function showResult(data: AnalyzeResponse): void {
       </div>
     </div>
 
+    <!-- Search -->
+    <div class="search-section">
+      <p class="label-muted mb-2">Search transcript</p>
+      <div class="input-group mb-2">
+        <input
+          type="text"
+          id="searchInput"
+          class="form-control"
+          placeholder="Search by meaning..."
+        />
+        <button class="btn btn-analyze" id="searchBtn">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+      <div id="searchResults"></div>
+    </div>
+
 <!-- Topics -->
     <div class="topics-section">
       <p class="label-muted mb-2">Topics (${data.topics.length} found)</p>
@@ -341,6 +426,12 @@ function showResult(data: AnalyzeResponse): void {
   // "Analyze another" reloads the panel to start fresh
   document.getElementById("newAnalysisBtn")?.addEventListener("click", () => {
     location.reload();
+  });
+
+  // Search handlers
+  document.getElementById("searchBtn")?.addEventListener("click", handleSearch);
+  document.getElementById("searchInput")?.addEventListener("keydown", (e: Event) => {
+    if ((e as KeyboardEvent).key === "Enter") handleSearch();
   });
 }
 
@@ -411,6 +502,24 @@ async function handleUseCurrentTab(): Promise<void> {
   } catch (error) {
     console.error("Could not get current tab URL:", error);
   }
+}
+
+/**
+ * Calls the backend /search endpoint.
+ */
+async function callSearchApi(query: string): Promise<SearchResponse> {
+  const response = await fetch(`${CONFIG.apiBaseUrl}/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Search failed");
+  }
+
+  return response.json();
 }
 
 
