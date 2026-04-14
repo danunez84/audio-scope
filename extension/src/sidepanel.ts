@@ -27,26 +27,6 @@ interface Segment {
   content: string;
 }
 
-interface AnalyzeResponse {
-  status: string;
-  file_id: string;
-  title: string;
-  duration: number;
-  transcription: {
-    full_text: string;
-    segments: Segment[];
-    processing_time: number;
-  };
-  steps: {
-    download: string;
-    transcription: string;
-    segmentation: string;
-    summarization: string;
-    indexing: string;
-  };
-  topics: Topic[];
-}
-
 interface TopicSentence {
   text: string;
   start: number;
@@ -75,6 +55,26 @@ interface SearchResult {
 interface SearchResponse {
   query: string;
   results: SearchResult[];
+}
+
+interface AnalyzeResponse {
+  status: string;
+  file_id: string;
+  title: string;
+  duration: number;
+  transcription: {
+    full_text: string;
+    segments: Segment[];
+    processing_time: number;
+  };
+  topics: Topic[];
+  steps: {
+    download: string;
+    transcription: string;
+    segmentation: string;
+    summarization: string;
+    indexing: string;
+  };
 }
 
 
@@ -137,6 +137,24 @@ async function callAnalyzeApi(url: string): Promise<AnalyzeResponse> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Server error");
+  }
+
+  return response.json();
+}
+
+/**
+ * Calls the backend /search endpoint.
+ */
+async function callSearchApi(query: string): Promise<SearchResponse> {
+  const response = await fetch(`${CONFIG.apiBaseUrl}/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Search failed");
   }
 
   return response.json();
@@ -213,47 +231,31 @@ function formatDuration(seconds: number): string {
 }
 
 /**
- * Builds the HTML for a single transcript segment.
- */
-function buildSegmentHtml(segment: Segment): string {
-  const timeRange = `${formatTimestamp(segment.start)} — ${formatTimestamp(segment.end)}`;
-  const speaker = segment.speaker !== null ? `Speaker ${segment.speaker}` : "";
-
-  return `
-    <div class="segment-card">
-      <div class="segment-header">
-        <span class="segment-time">${timeRange}</span>
-        ${speaker ? `<span class="segment-speaker">${speaker}</span>` : ""}
-      </div>
-      <p class="segment-content">${segment.content}</p>
-    </div>
-  `;
-}
-
-
-/**
- * Builds the HTML for a single topic card.
+ * Builds the HTML for a compact topic row (collapsed by default).
+ * Clicking expands to show summary and full sentences.
  */
 function buildTopicHtml(topic: Topic): string {
   const timeRange = `${formatTimestamp(topic.start)} — ${formatTimestamp(topic.end)}`;
-  const speakers = topic.speakers.length > 0
-    ? topic.speakers.map(s => `Speaker ${s}`).join(", ")
-    : "";
+  const topicId = `topic-${topic.topic_number}`;
 
   const sentencesHtml = topic.sentences
     .map(s => `<p class="topic-sentence">${s.text}</p>`)
     .join("");
 
   return `
-    <div class="topic-card">
-      <div class="topic-header">
-        <span class="topic-number">${topic.title || 'Topic ' + topic.topic_number}</span>
-        <span class="segment-time">${timeRange}</span>
+    <div class="topic-row" data-target="#${topicId}">
+      <div class="topic-row-left">
+        <span class="topic-num">${topic.topic_number}</span>
+        <span class="topic-name">${topic.title || 'Topic ' + topic.topic_number}</span>
       </div>
-      ${speakers ? `<p class="segment-speaker">${speakers}</p>` : ""}
-      ${topic.summary ? `<p class="topic-summary">${topic.summary}</p>` : ""}
-      <div class="topic-sentences">
-        ${sentencesHtml}
+      <span class="topic-time">${timeRange}</span>
+    </div>
+    <div class="topic-detail" id="${topicId}" style="display: none;">
+      <div class="topic-expanded">
+        ${topic.summary ? `<p class="topic-summary">${topic.summary}</p>` : ""}
+        <div class="topic-sentences">
+          ${sentencesHtml}
+        </div>
       </div>
     </div>
   `;
@@ -276,7 +278,6 @@ function buildSearchResultHtml(result: SearchResult): string {
     </div>
   `;
 }
-
 
 /**
  * Handles search — calls the API and displays results.
@@ -314,24 +315,17 @@ async function handleSearch(): Promise<void> {
   }
 }
 
-
 /**
- * Shows the full results in the side panel.
+ * Shows the full results in the side panel (Option B: Minimal layout).
  */
 function showResult(data: AnalyzeResponse): void {
   const main = document.querySelector(".app-body") as HTMLElement;
   const footer = document.querySelector(".app-footer") as HTMLElement;
 
-  // Hide the footer info box
   if (footer) footer.style.display = "none";
 
-  // Build segments HTML
-  const segmentsHtml = data.transcription.segments
-    .map(buildSegmentHtml)
-    .join("");
-
   main.innerHTML = `
-    <!-- Header info -->
+    <!-- Header -->
     <div class="result-header">
       <p class="result-title">${data.title}</p>
       <div class="result-meta-row">
@@ -340,27 +334,13 @@ function showResult(data: AnalyzeResponse): void {
           ${formatDuration(data.duration)}
         </span>
         <span class="result-meta-item">
+          <i class="bi bi-chat-left-text me-1"></i>
+          ${data.topics.length} topics
+        </span>
+        <span class="result-meta-item">
           <i class="bi bi-mic me-1"></i>
           ${data.transcription.segments.length} segments
         </span>
-      </div>
-    </div>
-
-    <!-- Full transcript (collapsible) -->
-    <div class="transcript-section">
-      <button
-        class="btn btn-sm btn-outline-secondary w-100 mb-3"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#fullTranscript"
-      >
-        <i class="bi bi-text-left me-1"></i>
-        Show full transcript
-      </button>
-      <div class="collapse" id="fullTranscript">
-        <div class="full-transcript-box">
-          ${data.transcription.full_text}
-        </div>
       </div>
     </div>
 
@@ -381,39 +361,28 @@ function showResult(data: AnalyzeResponse): void {
       <div id="searchResults"></div>
     </div>
 
-<!-- Topics -->
+    <!-- Topics (compact list, click to expand) -->
     <div class="topics-section">
-      <p class="label-muted mb-2">Topics (${data.topics.length} found)</p>
+      <p class="label-muted mb-2">Topics</p>
       ${data.topics.map(buildTopicHtml).join("")}
+      <p class="topics-hint">Click a topic to see details</p>
     </div>
 
-    <!-- Raw segments (collapsible) -->
-    <div class="segments-section">
+    <!-- Full transcript (collapsible) -->
+    <div class="transcript-section">
       <button
-        class="btn btn-sm btn-outline-secondary w-100 mb-3"
+        class="btn btn-sm btn-outline-secondary w-100"
         type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#rawSegments"
+        id="transcriptToggle"
       >
-        <i class="bi bi-list me-1"></i>
-        Show raw transcript segments
+        <i class="bi bi-text-left me-1"></i>
+        Show full transcript
       </button>
-      <div class="collapse" id="rawSegments">
-        ${segmentsHtml}
-      </div>
-    </div>
-
-    <!-- Pipeline status -->
-    <div class="pipeline-section">
-      <p class="label-muted mb-2">Pipeline status</p>
-      ${Object.entries(data.steps).map(([step, status]) => `
-        <div class="d-flex align-items-center justify-content-between py-1">
-          <span class="step-name">${step.charAt(0).toUpperCase() + step.slice(1)}</span>
-          <span class="badge ${status === "done" ? "badge-supported" : "badge-default"}">
-            ${status}
-          </span>
+      <div id="fullTranscript" style="display: none;">
+        <div class="full-transcript-box">
+          ${data.transcription.full_text}
         </div>
-      `).join("")}
+      </div>
     </div>
 
     <!-- Analyze another -->
@@ -423,7 +392,7 @@ function showResult(data: AnalyzeResponse): void {
     </button>
   `;
 
-  // "Analyze another" reloads the panel to start fresh
+  // "Analyze another" reloads the panel
   document.getElementById("newAnalysisBtn")?.addEventListener("click", () => {
     location.reload();
   });
@@ -432,6 +401,33 @@ function showResult(data: AnalyzeResponse): void {
   document.getElementById("searchBtn")?.addEventListener("click", handleSearch);
   document.getElementById("searchInput")?.addEventListener("keydown", (e: Event) => {
     if ((e as KeyboardEvent).key === "Enter") handleSearch();
+  });
+
+  // Topic expand/collapse handlers
+  document.querySelectorAll(".topic-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const targetId = row.getAttribute("data-target");
+      if (targetId) {
+        const detail = document.querySelector(targetId) as HTMLElement;
+        if (detail) {
+          const isVisible = detail.style.display !== "none";
+          detail.style.display = isVisible ? "none" : "block";
+        }
+      }
+    });
+  });
+
+  // Full transcript toggle
+  document.getElementById("transcriptToggle")?.addEventListener("click", () => {
+    const transcript = document.getElementById("fullTranscript") as HTMLElement;
+    const btn = document.getElementById("transcriptToggle") as HTMLElement;
+    if (transcript) {
+      const isVisible = transcript.style.display !== "none";
+      transcript.style.display = isVisible ? "none" : "block";
+      btn.innerHTML = isVisible
+        ? '<i class="bi bi-text-left me-1"></i> Show full transcript'
+        : '<i class="bi bi-text-left me-1"></i> Hide full transcript';
+    }
   });
 }
 
@@ -502,24 +498,6 @@ async function handleUseCurrentTab(): Promise<void> {
   } catch (error) {
     console.error("Could not get current tab URL:", error);
   }
-}
-
-/**
- * Calls the backend /search endpoint.
- */
-async function callSearchApi(query: string): Promise<SearchResponse> {
-  const response = await fetch(`${CONFIG.apiBaseUrl}/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Search failed");
-  }
-
-  return response.json();
 }
 
 

@@ -205,132 +205,6 @@ body {
 }
 
 
-/* --- Full Transcript --- */
-.transcript-section {
-  margin-bottom: 20px;
-}
-
-.full-transcript-box {
-  background-color: var(--ai-gray-50);
-  border-radius: 8px;
-  padding: 14px 16px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--ai-gray-600);
-}
-
-
-/* --- Segments --- */
-.segments-section {
-  margin-bottom: 20px;
-}
-
-.segment-card {
-  border: 1px solid var(--ai-gray-100);
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-}
-
-.segment-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.segment-time {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ai-teal-800);
-  background-color: var(--ai-teal-50);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.segment-speaker {
-  font-size: 11px;
-  color: var(--ai-gray-400);
-}
-
-.segment-content {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #2C2C2A;
-  margin: 0;
-}
-
-
-/* --- Pipeline Status --- */
-.pipeline-section {
-  padding-top: 16px;
-  border-top: 1px solid var(--ai-gray-100);
-}
-
-.step-name {
-  font-size: 13px;
-  color: var(--ai-gray-600);
-}
-
-
-/* --- Alert --- */
-.alert-danger {
-  font-size: 13px;
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #991B1B;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
-
-/* --- Topics --- */
-.topics-section {
-  margin-bottom: 20px;
-}
-
-.topic-card {
-  border: 1px solid var(--ai-gray-100);
-  border-left: 3px solid var(--ai-teal-400);
-  border-radius: 0 8px 8px 0;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-}
-
-.topic-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.topic-number {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ai-teal-800);
-}
-
-.topic-sentences {
-  margin-top: 8px;
-}
-
-.topic-sentence {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #2C2C2A;
-  margin: 0 0 4px;
-}
-
-.topic-summary {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--ai-teal-800);
-  background-color: var(--ai-teal-50);
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin: 8px 0;
-  line-height: 1.5;
-}
-
 /* --- Search --- */
 .search-section {
   margin-bottom: 20px;
@@ -356,4 +230,147 @@ body {
   font-size: 11px;
   font-weight: 500;
   color: var(--ai-teal-800);
+}
+
+
+/* --- Topics (Compact List) --- */
+.topics-section {
+  margin-bottom: 20px;
+}
+
+.topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border: 0.5px solid var(--ai-gray-100);
+  border-left: 3px solid var(--ai-teal-400);
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.topic-row:hover {
+  background-color: var(--ai-gray-50);
+}
+
+.topic-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topic-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topic-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2C2C2A;
+}
+
+.topic-time {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+  flex-shrink: 0;
+}
+
+.topics-hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ai-gray-400);
+  margin: 8px 0 0;
+}
+
+
+/* --- Topic Expanded Content --- */
+.topic-expanded {
+  padding: 12px 12px 12px 20px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--ai-teal-50);
+  border-radius: 0;
+}
+
+.topic-summary {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.topic-sentences {
+  margin-top: 8px;
+}
+
+.topic-sentence {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2C2C2A;
+  margin: 0 0 4px;
+}
+
+
+/* --- Full Transcript --- */
+.transcript-section {
+  margin-bottom: 16px;
+}
+
+.full-transcript-box {
+  background-color: var(--ai-gray-50);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ai-gray-600);
+  margin-top: 12px;
+}
+
+
+/* --- Segment cards (used in search results) --- */
+.segment-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.segment-speaker {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+}
+
+.segment-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2C2C2A;
+  margin: 0;
+}
+
+
+/* --- Alert --- */
+.alert-danger {
+  font-size: 13px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  border-radius: 8px;
+  padding: 12px 16px;
 }

@@ -43,30 +43,26 @@ def check_colab_health() -> bool:
         return False
 
 
-def transcribe_audio(audio_url: str, context: str = None) -> TranscriptionResult:
+def transcribe_audio(file_path: str, context: str = None) -> TranscriptionResult:
     """
-    Sends an audio URL to the Colab API for transcription.
+    Sends a local audio file to the Colab API for transcription.
 
     Args:
-        audio_url: Public URL of the audio file to transcribe.
-        context: Optional context/hints to improve accuracy
-                 (e.g. names, technical terms).
+        file_path: Path to the local audio file.
+        context: Optional context/hints to improve accuracy.
 
     Returns:
         TranscriptionResult with segments, full text, or error info.
     """
-    # Build the request body
-    payload = {"audio_url": audio_url}
-    if context:
-        payload["context"] = context
-
     try:
-        # Send to Colab API — long timeout since transcription can take minutes
-        response = requests.post(
-            f"{TRANSCRIPTION_API_URL}/transcribe",
-            json=payload,
-            timeout=600,  # 10 minute timeout for long audio
-        )
+        # Send file to Colab API
+        with open(file_path, 'rb') as f:
+            files = {'audio': ('audio.mp3', f, 'audio/mpeg')}
+            response = requests.post(
+                f"{TRANSCRIPTION_API_URL}/transcribe",
+                files=files,
+                timeout=600,
+            )
 
         if response.status_code != 200:
             error_data = response.json()
@@ -77,7 +73,7 @@ def transcribe_audio(audio_url: str, context: str = None) -> TranscriptionResult
 
         data = response.json()
 
-        # Parse segments from the Colab response
+        # Parse segments
         segments = []
         for seg in data.get("segments", []):
             segments.append(Segment(

@@ -124,7 +124,8 @@ async def analyze_audio(request: AnalyzeRequest):
 
         # Step 2: Transcribe via Colab API
         print(f"[STEP 2] Sending to Colab for transcription: {request.url}")
-        transcription_result = transcribe_audio(request.url)
+        print(f"[STEP 2] File path: {download_result.file_path}, exists: {download_result.file_path.exists()}")
+        transcription_result = transcribe_audio(str(download_result.file_path))
         print(f"[STEP 2] Transcription result — success: {transcription_result.success}, error: {transcription_result.error}")
 
         if not transcription_result.success:
