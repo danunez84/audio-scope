@@ -54,13 +54,13 @@ body {
 }
 
 .app-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #2C2C2A;
 }
 
 .app-subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ai-gray-400);
   margin-top: 4px;
 }
@@ -68,7 +68,7 @@ body {
 
 /* --- Labels --- */
 .label-muted {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--ai-gray-400);
   letter-spacing: 0.3px;
@@ -87,6 +87,16 @@ body {
 }
 
 #urlInput::placeholder {
+  color: var(--ai-gray-400);
+}
+
+
+/* --- Search Input --- */
+#searchInput {
+  font-size: 13px;
+}
+
+#searchInput::placeholder {
   color: var(--ai-gray-400);
 }
 
@@ -131,13 +141,13 @@ body {
 }
 
 .btn-new-analysis {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--ai-teal-800);
   background-color: var(--ai-teal-50);
   border: 1px solid var(--ai-teal-100);
   border-radius: 6px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   cursor: pointer;
   transition: background-color 0.15s ease;
   white-space: nowrap;
@@ -150,7 +160,7 @@ body {
 
 /* --- Badges --- */
 .badge-supported {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   padding: 4px 10px;
   border-radius: 6px;
@@ -159,7 +169,7 @@ body {
 }
 
 .badge-default {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   padding: 4px 10px;
   border-radius: 6px;
@@ -176,7 +186,7 @@ body {
 }
 
 .info-box p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ai-gray-600);
   line-height: 1.6;
 }
@@ -210,7 +220,7 @@ body {
 }
 
 .result-meta-item {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ai-gray-400);
 }
 
@@ -257,7 +267,7 @@ body {
 }
 
 .toggle-icon {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ai-gray-400);
   transition: transform 0.2s ease;
 }
@@ -333,17 +343,12 @@ body {
 
 .topic-summary {
   font-size: 13px;
-  font-style: italic;
   color: var(--ai-teal-800);
   background-color: var(--ai-teal-50);
   padding: 8px 12px;
   border-radius: 6px;
   margin: 0 0 8px;
   line-height: 1.5;
-}
-
-.topic-sentences {
-  margin-top: 8px;
 }
 
 .topic-sentence {
@@ -354,7 +359,7 @@ body {
 }
 
 .btn-show-full {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ai-teal-600);
   background: none;
   border: none;
