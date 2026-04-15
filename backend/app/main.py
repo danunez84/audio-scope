@@ -6,6 +6,7 @@ Main entry point for the backend API.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.cache import get_cached_result, save_to_cache
 from app.config import CORS_ORIGINS
 from app.models import AnalyzeRequest, DownloadResponse, ErrorResponse, HealthResponse
 from app.downloader import download_audio, cleanup_audio
@@ -111,6 +112,13 @@ async def analyze_audio(request: AnalyzeRequest):
     Full pipeline: download → transcribe → segment → summarize → index.
     """
     try:
+
+        # Check cache first
+        cached = get_cached_result(request.url)
+        if cached:
+            print(f"[CACHE] Returning cached result for: {request.url}")
+            return cached
+
         # Step 1: Download audio
         print(f"[STEP 1] Downloading audio from: {request.url}")
         download_result = download_audio(request.url)
@@ -160,7 +168,7 @@ async def analyze_audio(request: AnalyzeRequest):
         global _current_sentences
         _current_sentences = all_sentences
 
-        return {
+        result = {
             "status": "completed",
             "file_id": file_id,
             "title": download_result.title,
@@ -179,6 +187,12 @@ async def analyze_audio(request: AnalyzeRequest):
                 "indexing": "done",
             },
         }
+
+        # Save to cache
+        save_to_cache(request.url, result)
+        print(f"[CACHE] Saved result to cache")
+
+        return result
 
     except HTTPException:
         raise

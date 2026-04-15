@@ -18,7 +18,17 @@ def summarize_topic(sentences: list[str], num_sentences: int = 2, redundancy_thr
     """
     # If the topic is short enough, return all sentences as the summary
     if len(sentences) <= num_sentences:
-        return " ".join(sentences)
+            if len(sentences) == 1:
+                return sentences[0]
+            # For 2 sentences, pick the most representative one
+            embeddings = _embedding_model.encode(sentences)
+            centroid = np.mean(embeddings, axis=0).reshape(1, -1)
+            scores = [
+                cosine_similarity(emb.reshape(1, -1), centroid)[0][0]
+                for emb in embeddings
+            ]
+            best_idx = int(np.argmax(scores))
+            return sentences[best_idx]
 
     # Embed all sentences
     embeddings = _embedding_model.encode(sentences)

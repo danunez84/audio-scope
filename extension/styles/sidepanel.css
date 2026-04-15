@@ -2,7 +2,6 @@
    Audio Insight — Side Panel Styles
    ============================================ */
 
-/* --- Custom Properties --- */
 :root {
   --ai-teal-50:  #E1F5EE;
   --ai-teal-100: #9FE1CB;
@@ -15,8 +14,6 @@
   --ai-gray-600: #5F5E5A;
 }
 
-
-/* --- Base --- */
 body {
   margin: 0;
   padding: 0;
@@ -133,9 +130,21 @@ body {
   border-color: var(--ai-gray-100);
 }
 
-.btn-outline-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn-new-analysis {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ai-teal-800);
+  background-color: var(--ai-teal-50);
+  border: 1px solid var(--ai-teal-100);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-new-analysis:hover {
+  background-color: var(--ai-teal-100);
 }
 
 
@@ -156,13 +165,6 @@ body {
   border-radius: 6px;
   background-color: var(--ai-gray-50);
   color: var(--ai-gray-600);
-}
-
-
-/* --- Sources Section --- */
-.sources-section {
-  padding-top: 20px;
-  border-top: 1px solid var(--ai-gray-100);
 }
 
 
@@ -187,11 +189,19 @@ body {
   border-bottom: 1px solid var(--ai-gray-100);
 }
 
+.result-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .result-title {
   font-size: 15px;
   font-weight: 600;
   color: #2C2C2A;
-  margin: 0 0 8px;
+  margin: 0;
 }
 
 .result-meta-row {
@@ -233,9 +243,35 @@ body {
 }
 
 
-/* --- Topics (Compact List) --- */
+/* --- Section Toggle --- */
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.section-toggle:hover .label-muted {
+  color: var(--ai-gray-600);
+}
+
+.toggle-icon {
+  font-size: 12px;
+  color: var(--ai-gray-400);
+  transition: transform 0.2s ease;
+}
+
+.toggle-icon.toggle-open {
+  transform: rotate(180deg);
+}
+
+
+/* --- Topics --- */
 .topics-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ai-gray-100);
 }
 
 .topic-row {
@@ -287,20 +323,12 @@ body {
   flex-shrink: 0;
 }
 
-.topics-hint {
-  text-align: center;
-  font-size: 11px;
-  color: var(--ai-gray-400);
-  margin: 8px 0 0;
-}
 
-
-/* --- Topic Expanded Content --- */
+/* --- Topic Expanded --- */
 .topic-expanded {
   padding: 12px 12px 12px 20px;
   margin-bottom: 8px;
   border-left: 3px solid var(--ai-teal-50);
-  border-radius: 0;
 }
 
 .topic-summary {
@@ -310,7 +338,7 @@ body {
   background-color: var(--ai-teal-50);
   padding: 8px 12px;
   border-radius: 6px;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   line-height: 1.5;
 }
 
@@ -323,6 +351,21 @@ body {
   line-height: 1.6;
   color: #2C2C2A;
   margin: 0 0 4px;
+}
+
+.btn-show-full {
+  font-size: 12px;
+  color: var(--ai-teal-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.btn-show-full:hover {
+  color: var(--ai-teal-800);
+  text-decoration: underline;
 }
 
 
@@ -338,11 +381,10 @@ body {
   font-size: 13px;
   line-height: 1.7;
   color: var(--ai-gray-600);
-  margin-top: 12px;
 }
 
 
-/* --- Segment cards (used in search results) --- */
+/* --- Segment (search results) --- */
 .segment-time {
   font-size: 11px;
   font-weight: 500;
@@ -350,11 +392,6 @@ body {
   background-color: var(--ai-teal-50);
   padding: 2px 8px;
   border-radius: 4px;
-}
-
-.segment-speaker {
-  font-size: 11px;
-  color: var(--ai-gray-400);
 }
 
 .segment-content {

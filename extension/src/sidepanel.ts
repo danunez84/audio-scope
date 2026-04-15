@@ -86,32 +86,20 @@ const currentTabBtn = document.getElementById("currentTabBtn") as HTMLButtonElem
 
 // --- Validation ---
 
-/**
- * Validates the given URL string.
- */
 function validateUrl(input: string): ValidationResult {
   const trimmed = input.trim();
-
-  if (!trimmed) {
-    return { valid: false, message: "Please enter a URL." };
-  }
-
+  if (!trimmed) return { valid: false, message: "Please enter a URL." };
   try {
     const url = new URL(trimmed);
-
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       return { valid: false, message: "URL must start with http or https." };
     }
-
     return { valid: true };
   } catch {
     return { valid: false, message: "Please enter a valid URL." };
   }
 }
 
-/**
- * Checks if the URL is from a supported source.
- */
 function isSupportedSource(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -124,79 +112,54 @@ function isSupportedSource(url: string): boolean {
 
 // --- API ---
 
-/**
- * Calls the backend /analyze endpoint.
- */
 async function callAnalyzeApi(url: string): Promise<AnalyzeResponse> {
   const response = await fetch(`${CONFIG.apiBaseUrl}/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   });
-
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Server error");
   }
-
   return response.json();
 }
 
-/**
- * Calls the backend /search endpoint.
- */
 async function callSearchApi(query: string): Promise<SearchResponse> {
   const response = await fetch(`${CONFIG.apiBaseUrl}/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
   });
-
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Search failed");
   }
-
   return response.json();
 }
 
 
 // --- UI Helpers ---
 
-/**
- * Shows a validation error on the URL input.
- */
 function showValidationError(message: string): void {
   urlInput.classList.add("is-invalid");
-
-  let feedback = urlInput.parentElement?.querySelector(
-    ".invalid-feedback"
-  ) as HTMLElement | null;
-
+  let feedback = urlInput.parentElement?.querySelector(".invalid-feedback") as HTMLElement | null;
   if (!feedback) {
     feedback = document.createElement("div");
     feedback.className = "invalid-feedback";
     urlInput.parentElement?.appendChild(feedback);
   }
-
   feedback.textContent = message;
 }
 
-/**
- * Clears validation errors.
- */
 function clearValidationError(): void {
   urlInput.classList.remove("is-invalid");
 }
 
-/**
- * Sets the analyze button to a loading state.
- */
 function setLoading(loading: boolean): void {
   analyzeBtn.disabled = loading;
   currentTabBtn.disabled = loading;
   urlInput.disabled = loading;
-
   if (loading) {
     analyzeBtn.innerHTML = `
       <span class="spinner-border spinner-border-sm me-2" role="status"></span>
@@ -210,29 +173,22 @@ function setLoading(loading: boolean): void {
   }
 }
 
-/**
- * Formats seconds into a timestamp string like "1:23" or "0:05".
- */
 function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-/**
- * Formats seconds into a readable duration string like "3m 20s".
- */
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.round(seconds % 60);
-
   if (mins === 0) return `${secs}s`;
   return `${mins}m ${secs}s`;
 }
 
 /**
- * Builds the HTML for a compact topic row (collapsed by default).
- * Clicking expands to show summary and full sentences.
+ * Builds the HTML for a topic row.
+ * Click topic → shows summary. Click "Show full text" → shows all sentences.
  */
 function buildTopicHtml(topic: Topic): string {
   const timeRange = `${formatTimestamp(topic.start)} — ${formatTimestamp(topic.end)}`;
@@ -253,9 +209,10 @@ function buildTopicHtml(topic: Topic): string {
     <div class="topic-detail" id="${topicId}" style="display: none;">
       <div class="topic-expanded">
         ${topic.summary ? `<p class="topic-summary">${topic.summary}</p>` : ""}
-        <div class="topic-sentences">
+        <div class="topic-full-text" id="${topicId}-full" style="display: none;">
           ${sentencesHtml}
         </div>
+        <button class="btn-show-full" data-target="#${topicId}-full">Show full text</button>
       </div>
     </div>
   `;
@@ -280,13 +237,12 @@ function buildSearchResultHtml(result: SearchResult): string {
 }
 
 /**
- * Handles search — calls the API and displays results.
+ * Handles search.
  */
 async function handleSearch(): Promise<void> {
   const searchInput = document.getElementById("searchInput") as HTMLInputElement;
   const searchResults = document.getElementById("searchResults") as HTMLElement;
   const query = searchInput.value.trim();
-
   if (!query) return;
 
   searchResults.innerHTML = `
@@ -298,36 +254,34 @@ async function handleSearch(): Promise<void> {
 
   try {
     const data = await callSearchApi(query);
-
     if (data.results.length === 0) {
       searchResults.innerHTML = `<p class="text-muted py-2">No results found.</p>`;
       return;
     }
-
-    searchResults.innerHTML = data.results
-      .map(buildSearchResultHtml)
-      .join("");
+    searchResults.innerHTML = data.results.map(buildSearchResultHtml).join("");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Search failed.";
-    searchResults.innerHTML = `
-      <div class="alert alert-danger">${message}</div>
-    `;
+    searchResults.innerHTML = `<div class="alert alert-danger">${message}</div>`;
   }
 }
 
 /**
- * Shows the full results in the side panel (Option B: Minimal layout).
+ * Shows the results in the side panel.
  */
 function showResult(data: AnalyzeResponse): void {
   const main = document.querySelector(".app-body") as HTMLElement;
   const footer = document.querySelector(".app-footer") as HTMLElement;
-
   if (footer) footer.style.display = "none";
 
   main.innerHTML = `
-    <!-- Header -->
+    <!-- Header with "New" button -->
     <div class="result-header">
-      <p class="result-title">${data.title}</p>
+      <div class="result-header-top">
+        <p class="result-title">${data.title}</p>
+        <button class="btn-new-analysis" id="newAnalysisBtn" title="Analyze another">
+          <i class="bi bi-plus-lg"></i> New
+        </button>
+      </div>
       <div class="result-meta-row">
         <span class="result-meta-item">
           <i class="bi bi-clock me-1"></i>
@@ -361,49 +315,52 @@ function showResult(data: AnalyzeResponse): void {
       <div id="searchResults"></div>
     </div>
 
-    <!-- Topics (compact list, click to expand) -->
+    <!-- Topics (expanded by default, can collapse) -->
     <div class="topics-section">
-      <p class="label-muted mb-2">Topics</p>
-      ${data.topics.map(buildTopicHtml).join("")}
-      <p class="topics-hint">Click a topic to see details</p>
+      <div class="section-toggle" id="topicsToggle">
+        <p class="label-muted mb-0">Topics (${data.topics.length})</p>
+        <i class="bi bi-chevron-down toggle-icon toggle-open" id="topicsChevron"></i>
+      </div>
+      <div id="topicsList" style="margin-top: 10px;">
+        ${data.topics.map(buildTopicHtml).join("")}
+      </div>
     </div>
 
-    <!-- Full transcript (collapsible) -->
+    <!-- Full transcript (collapsed by default) -->
     <div class="transcript-section">
-      <button
-        class="btn btn-sm btn-outline-secondary w-100"
-        type="button"
-        id="transcriptToggle"
-      >
-        <i class="bi bi-text-left me-1"></i>
-        Show full transcript
-      </button>
-      <div id="fullTranscript" style="display: none;">
+      <div class="section-toggle" id="transcriptToggle">
+        <p class="label-muted mb-0">Full transcript</p>
+        <i class="bi bi-chevron-down toggle-icon" id="transcriptChevron"></i>
+      </div>
+      <div id="fullTranscript" style="display: none; margin-top: 10px;">
         <div class="full-transcript-box">
           ${data.transcription.full_text}
         </div>
       </div>
     </div>
-
-    <!-- Analyze another -->
-    <button class="btn btn-outline-secondary w-100 mt-3" id="newAnalysisBtn">
-      <i class="bi bi-arrow-left me-1"></i>
-      Analyze another
-    </button>
   `;
 
-  // "Analyze another" reloads the panel
+  // --- Event Listeners ---
+
   document.getElementById("newAnalysisBtn")?.addEventListener("click", () => {
     location.reload();
   });
 
-  // Search handlers
   document.getElementById("searchBtn")?.addEventListener("click", handleSearch);
   document.getElementById("searchInput")?.addEventListener("keydown", (e: Event) => {
     if ((e as KeyboardEvent).key === "Enter") handleSearch();
   });
 
-  // Topic expand/collapse handlers
+  // Topics section toggle
+  document.getElementById("topicsToggle")?.addEventListener("click", () => {
+    const list = document.getElementById("topicsList") as HTMLElement;
+    const chevron = document.getElementById("topicsChevron") as HTMLElement;
+    const isVisible = list.style.display !== "none";
+    list.style.display = isVisible ? "none" : "block";
+    chevron.classList.toggle("toggle-open", !isVisible);
+  });
+
+  // Individual topic expand/collapse (shows summary)
   document.querySelectorAll(".topic-row").forEach((row) => {
     row.addEventListener("click", () => {
       const targetId = row.getAttribute("data-target");
@@ -417,59 +374,62 @@ function showResult(data: AnalyzeResponse): void {
     });
   });
 
-  // Full transcript toggle
+  // "Show full text" buttons inside topics
+  document.querySelectorAll(".btn-show-full").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetId = btn.getAttribute("data-target");
+      if (targetId) {
+        const fullText = document.querySelector(targetId) as HTMLElement;
+        if (fullText) {
+          const isVisible = fullText.style.display !== "none";
+          fullText.style.display = isVisible ? "none" : "block";
+          btn.textContent = isVisible ? "Show full text" : "Hide full text";
+        }
+      }
+    });
+  });
+
+  // Transcript toggle
   document.getElementById("transcriptToggle")?.addEventListener("click", () => {
     const transcript = document.getElementById("fullTranscript") as HTMLElement;
-    const btn = document.getElementById("transcriptToggle") as HTMLElement;
-    if (transcript) {
-      const isVisible = transcript.style.display !== "none";
-      transcript.style.display = isVisible ? "none" : "block";
-      btn.innerHTML = isVisible
-        ? '<i class="bi bi-text-left me-1"></i> Show full transcript'
-        : '<i class="bi bi-text-left me-1"></i> Hide full transcript';
-    }
+    const chevron = document.getElementById("transcriptChevron") as HTMLElement;
+    const isVisible = transcript.style.display !== "none";
+    transcript.style.display = isVisible ? "none" : "block";
+    chevron.classList.toggle("toggle-open", !isVisible);
   });
 }
 
 /**
- * Shows an error message in the side panel.
+ * Shows an error message.
  */
 function showError(message: string): void {
   const main = document.querySelector(".app-body") as HTMLElement;
-
   const alertHtml = `
     <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
       <i class="bi bi-exclamation-triangle-fill"></i>
       <span>${message}</span>
     </div>
   `;
-
   const existingAlert = main.querySelector(".alert");
   if (existingAlert) existingAlert.remove();
-
   main.insertAdjacentHTML("afterbegin", alertHtml);
 }
 
 
 // --- Event Handlers ---
 
-/**
- * Handles the "Analyze audio" button click.
- */
 async function handleAnalyze(): Promise<void> {
   const url = urlInput.value.trim();
   const result = validateUrl(url);
-
   if (!result.valid) {
     showValidationError(result.message ?? "Invalid URL.");
     return;
   }
-
   const existingAlert = document.querySelector(".alert");
   if (existingAlert) existingAlert.remove();
 
   setLoading(true);
-
   try {
     const data = await callAnalyzeApi(url);
     showResult(data);
@@ -481,16 +441,9 @@ async function handleAnalyze(): Promise<void> {
   }
 }
 
-/**
- * Handles the "Use current tab URL" button click.
- */
 async function handleUseCurrentTab(): Promise<void> {
   try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {
       urlInput.value = tab.url;
       clearValidationError();
@@ -505,9 +458,6 @@ async function handleUseCurrentTab(): Promise<void> {
 analyzeBtn.addEventListener("click", handleAnalyze);
 currentTabBtn.addEventListener("click", handleUseCurrentTab);
 urlInput.addEventListener("input", clearValidationError);
-
 urlInput.addEventListener("keydown", (event: KeyboardEvent): void => {
-  if (event.key === "Enter") {
-    handleAnalyze();
-  }
+  if (event.key === "Enter") handleAnalyze();
 });

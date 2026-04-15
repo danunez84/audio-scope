@@ -63,6 +63,8 @@ def transcribe_audio(file_path: str, context: str = None) -> TranscriptionResult
                 files=files,
                 timeout=600,
             )
+            print(f"[DEBUG] Response status: {response.status_code}, length: {len(response.text)}")
+            print(f"[DEBUG] Response body: {response.text[:300]}")
 
         if response.status_code != 200:
             error_data = response.json()
@@ -71,7 +73,13 @@ def transcribe_audio(file_path: str, context: str = None) -> TranscriptionResult
                 error=error_data.get("error", "Transcription failed"),
             )
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception:
+            return TranscriptionResult(
+                success=False,
+                error=f"Colab returned status {response.status_code}, body: {response.text[:300]}",
+            )
 
         # Parse segments
         segments = []
