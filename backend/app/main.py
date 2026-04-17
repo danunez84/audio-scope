@@ -130,6 +130,12 @@ async def analyze_audio(request: AnalyzeRequest):
         file_id = download_result.file_path.stem if download_result.file_path else ""
         print(f"[STEP 1] Download complete: {download_result.title} ({download_result.duration}s)")
 
+        if download_result.duration > 3600:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Audio is too long ({int(download_result.duration / 60)} minutes). Maximum is 60 minutes."
+            )
+        
         # Step 2: Transcribe via Colab API
         print(f"[STEP 2] Sending to Colab for transcription: {request.url}")
         print(f"[STEP 2] File path: {download_result.file_path}, exists: {download_result.file_path.exists()}")

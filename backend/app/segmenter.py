@@ -62,7 +62,7 @@ def split_into_sentences(segments: list) -> list[Sentence]:
     return sentences
 
 
-def find_topic_boundaries(sentences: list[Sentence], percentile: int = 15) -> list[int]:
+def find_topic_boundaries(sentences: list[Sentence], percentile: int = 10) -> list[int]:
     """
     Finds where topics change by comparing consecutive sentence embeddings.
     Returns a list of indices where new topics start.
@@ -108,19 +108,33 @@ def build_topic(sentences: list[Sentence]) -> Topic:
     )
 
 
-def segment_into_topics(segments: list, percentile: int = 15) -> list[Topic]:
+def segment_into_topics(segments: list) -> list[Topic]:
     """
     Main function — takes transcription segments and returns topics.
-
-    1. Split segments into sentences
-    2. Find topic boundaries using embeddings
-    3. Group sentences into topics
+    Automatically adjusts sensitivity based on audio length.
     """
     # Step 1: Split into sentences
     sentences = split_into_sentences(segments)
 
     if not sentences:
         return []
+
+    # Calculate total duration
+    total_duration = sentences[-1].end - sentences[0].start
+
+    # Scale parameters based on audio length
+    if total_duration < 120:        # Under 2 minutes
+        percentile = 15
+        min_duration = 10.0
+    elif total_duration < 300:      # 2-5 minutes
+        percentile = 12
+        min_duration = 20.0
+    elif total_duration < 900:      # 5-15 minutes
+        percentile = 10
+        min_duration = 30.0
+    else:                           # Over 15 minutes
+        percentile = 8
+        min_duration = 60.0
 
     # Steps 2-4: Find where topics change
     boundaries = find_topic_boundaries(sentences, percentile)
@@ -134,8 +148,30 @@ def segment_into_topics(segments: list, percentile: int = 15) -> list[Topic]:
         topics.append(build_topic(topic_sentences))
         start_idx = boundary
 
-    # Don't forget the last topic (after the final boundary)
+    # Don't forget the last topic
     topic_sentences = sentences[start_idx:]
     topics.append(build_topic(topic_sentences))
 
-    return topics
+# Step 6: Keep merging short topics until all meet minimum duration
+    merged = topics
+    changed = True
+    while changed:
+        changed = False
+        new_merged = []
+        i = 0
+        while i < len(merged):
+            current = merged[i]
+            duration = current.end - current.start
+
+            if duration < min_duration and i + 1 < len(merged):
+                next_topic = merged[i + 1]
+                combined_sentences = current.sentences + next_topic.sentences
+                new_merged.append(build_topic(combined_sentences))
+                i += 2
+                changed = True
+            else:
+                new_merged.append(current)
+                i += 1
+        merged = new_merged
+
+    return merged

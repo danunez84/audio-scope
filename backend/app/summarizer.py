@@ -9,6 +9,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from app.embeddings import model as _embedding_model
 from app.segmenter import Topic
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.tokenize import sent_tokenize
+
 
 def summarize_topic(sentences: list[str], num_sentences: int = 2, redundancy_threshold: float = 0.8) -> str:
     """
@@ -76,61 +79,24 @@ def summarize_topic(sentences: list[str], num_sentences: int = 2, redundancy_thr
 def summarize_topics(topics: list[Topic]) -> tuple[list[str], list[str]]:
     """
     Generates a summary and title for each topic.
-    Returns (summaries, titles) — two lists in the same order as topics.
+    Title is the first sentence of the summary, truncated.
     """
     summaries = []
     titles = []
 
-    # Build full text for each topic (needed for TF-IDF comparison)
-    all_topics_text = [
-        " ".join(s.text for s in topic.sentences)
-        for topic in topics
-    ]
-
     for topic in topics:
         sentences = [s.text for s in topic.sentences]
         summary = summarize_topic(sentences)
-        title = generate_topic_title(sentences, all_topics_text)
+
+        # Title from the first sentence of the summary
+        first_sentence = summary.split(". ")[0]
+        words = first_sentence.split()
+        if len(words) > 10:
+            title = " ".join(words[:10]) + "..."
+        else:
+            title = first_sentence.rstrip(".")
+
         summaries.append(summary)
         titles.append(title)
 
     return summaries, titles
-
-
-
-def generate_topic_title(sentences: list[str], all_topics_text: list[str], max_words: int = 6) -> str:
-    """
-    Generates a short title for a topic using TF-IDF to find key terms,
-    then extracts a phrase from the most representative sentence.
-    """
-    from sklearn.feature_extraction.text import TfidfVectorizer
-
-    topic_text = " ".join(sentences)
-
-    # TF-IDF across all topics to find what makes this topic unique
-    vectorizer = TfidfVectorizer(stop_words="english")
-    tfidf_matrix = vectorizer.fit_transform(all_topics_text)
-    feature_names = vectorizer.get_feature_names_out()
-
-    # Find this topic's index
-    topic_idx = all_topics_text.index(topic_text)
-    scores = tfidf_matrix[topic_idx].toarray()[0]
-
-    # Get top keywords for this topic
-    top_indices = scores.argsort()[-5:][::-1]
-    keywords = set(feature_names[idx] for idx in top_indices)
-
-    # Score each sentence by how many keywords it contains
-    best_sentence = sentences[0]
-    best_count = 0
-    for sentence in sentences:
-        count = sum(1 for word in sentence.lower().split() if word.strip(".,!?") in keywords)
-        if count > best_count:
-            best_count = count
-            best_sentence = sentence
-
-    # Truncate to max_words
-    words = best_sentence.split()
-    if len(words) > max_words:
-        return " ".join(words[:max_words]) + "..."
-    return best_sentence
