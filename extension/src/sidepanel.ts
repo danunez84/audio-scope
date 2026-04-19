@@ -50,6 +50,8 @@ interface SearchResult {
   end: number;
   speaker: number | null;
   score: number;
+  video_id?: string;
+  title?: string;
 }
 
 interface SearchResponse {
@@ -77,11 +79,48 @@ interface AnalyzeResponse {
   };
 }
 
+interface LibraryItem {
+  video_id: string;
+  title: string;
+  duration: number;
+  topics_count: number;
+}
+
 
 // --- DOM Elements ---
 const urlInput      = document.getElementById("urlInput") as HTMLInputElement;
 const analyzeBtn    = document.getElementById("analyzeBtn") as HTMLButtonElement;
 const currentTabBtn = document.getElementById("currentTabBtn") as HTMLButtonElement;
+
+
+// --- Tab Navigation ---
+
+function initTabs(): void {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab");
+      if (!tab) return;
+
+      // Update active tab button
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // Show/hide tab content
+      document.querySelectorAll(".tab-content").forEach(content => {
+        (content as HTMLElement).style.display = "none";
+      });
+
+      if (tab === "analyze") {
+        const analyzeTab = document.getElementById("analyzeTab") as HTMLElement;
+        analyzeTab.style.display = "block";
+      } else if (tab === "library") {
+        const libraryTab = document.getElementById("libraryTab") as HTMLElement;
+        libraryTab.style.display = "block";
+        loadLibrary();
+      }
+    });
+  });
+}
 
 
 // --- Validation ---
@@ -125,17 +164,28 @@ async function callAnalyzeApi(url: string): Promise<AnalyzeResponse> {
   return response.json();
 }
 
-async function callSearchApi(query: string): Promise<SearchResponse> {
+async function callSearchApi(query: string, videoIds: string[] = []): Promise<SearchResponse> {
+  const body: any = { query };
+  if (videoIds.length > 0) {
+    body.video_ids = videoIds;
+  }
   const response = await fetch(`${CONFIG.apiBaseUrl}/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Search failed");
   }
   return response.json();
+}
+
+async function callLibraryApi(): Promise<LibraryItem[]> {
+  const response = await fetch(`${CONFIG.apiBaseUrl}/library`);
+  if (!response.ok) throw new Error("Failed to load library");
+  const data = await response.json();
+  return data.library;
 }
 
 
@@ -186,10 +236,9 @@ function formatDuration(seconds: number): string {
   return `${mins}m ${secs}s`;
 }
 
-/**
- * Builds the HTML for a topic row.
- * Click topic → shows summary. Click "Show full text" → shows all sentences.
- */
+
+// --- Topic HTML ---
+
 function buildTopicHtml(topic: Topic): string {
   const timeRange = `${formatTimestamp(topic.start)} — ${formatTimestamp(topic.end)}`;
   const topicId = `topic-${topic.topic_number}`;
@@ -218,12 +267,13 @@ function buildTopicHtml(topic: Topic): string {
   `;
 }
 
-/**
- * Builds the HTML for a search result.
- */
+
+// --- Search Result HTML ---
+
 function buildSearchResultHtml(result: SearchResult): string {
   const time = formatTimestamp(result.start);
   const score = Math.round(result.score * 100);
+  const source = result.title ? `<span class="search-source">${result.title}</span>` : "";
 
   return `
     <div class="search-result-card">
@@ -231,14 +281,15 @@ function buildSearchResultHtml(result: SearchResult): string {
         <span class="segment-time">${time}</span>
         <span class="search-score">${score}% match</span>
       </div>
+      ${source}
       <p class="segment-content">${result.text}</p>
     </div>
   `;
 }
 
-/**
- * Handles search.
- */
+
+// --- Search Handler ---
+
 async function handleSearch(): Promise<void> {
   const searchInput = document.getElementById("searchInput") as HTMLInputElement;
   const searchResults = document.getElementById("searchResults") as HTMLElement;
@@ -265,12 +316,153 @@ async function handleSearch(): Promise<void> {
   }
 }
 
-/**
- * Shows the results in the side panel.
- */
+
+// --- Library ---
+
+async function loadLibrary(): Promise<void> {
+  const container = document.getElementById("libraryContent") as HTMLElement;
+
+  try {
+    const library = await callLibraryApi();
+
+    if (library.length === 0) {
+      container.innerHTML = `
+        <div class="empty-library">
+          <i class="bi bi-collection"></i>
+          <p>No analyzed audios yet</p>
+          <p class="label-muted">Switch to the Analyze tab to get started</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <!-- Library Search -->
+      <div class="search-section">
+        <p class="label-muted mb-2">Search across all audios</p>
+        <div class="input-group mb-2">
+          <input
+            type="text"
+            id="librarySearchInput"
+            class="form-control"
+            placeholder="Search by meaning..."
+          />
+          <button class="btn btn-analyze" id="librarySearchBtn">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+        <div id="librarySearchResults"></div>
+      </div>
+
+      <!-- Audio List -->
+      <div class="library-section">
+        <p class="label-muted mb-2">Analyzed audios (${library.length})</p>
+        ${library.map(buildLibraryItemHtml).join("")}
+      </div>
+    `;
+
+    // Library search handler
+    document.getElementById("librarySearchBtn")?.addEventListener("click", handleLibrarySearch);
+    document.getElementById("librarySearchInput")?.addEventListener("keydown", (e: Event) => {
+      if ((e as KeyboardEvent).key === "Enter") handleLibrarySearch();
+    });
+
+// Library item click — load cached result (only on info/arrow, not checkbox)
+    document.querySelectorAll(".library-item-info, .library-item-arrow").forEach((el) => {
+      el.addEventListener("click", () => {
+        const videoId = el.getAttribute("data-video-id");
+        if (videoId) loadCachedResult(videoId);
+      });
+    });
+
+  } catch (error) {
+    container.innerHTML = `<p class="text-muted">Could not load library. Is the backend running?</p>`;
+  }
+}
+
+function buildLibraryItemHtml(item: LibraryItem): string {
+  return `
+    <div class="library-item">
+      <label class="library-checkbox">
+        <input type="checkbox" class="library-check" value="${item.video_id}" checked />
+      </label>
+      <div class="library-item-info" data-video-id="${item.video_id}">
+        <span class="library-item-title">${item.title}</span>
+        <span class="library-item-meta">
+          ${formatDuration(item.duration)} · ${item.topics_count} topics
+        </span>
+      </div>
+      <i class="bi bi-chevron-right library-item-arrow" data-video-id="${item.video_id}"></i>
+    </div>
+  `;
+}
+
+async function loadCachedResult(videoId: string): Promise<void> {
+  try {
+    const response = await fetch(`${CONFIG.apiBaseUrl}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}` }),
+    });
+    if (!response.ok) throw new Error("Failed to load");
+    const data = await response.json();
+
+    // Switch to analyze tab and show result
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tabAnalyze")?.classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(c => {
+      (c as HTMLElement).style.display = "none";
+    });
+    const analyzeTab = document.getElementById("analyzeTab") as HTMLElement;
+    analyzeTab.style.display = "block";
+
+    showResult(data);
+  } catch (error) {
+    console.error("Failed to load cached result:", error);
+  }
+}
+
+async function handleLibrarySearch(): Promise<void> {
+  const searchInput = document.getElementById("librarySearchInput") as HTMLInputElement;
+  const searchResults = document.getElementById("librarySearchResults") as HTMLElement;
+  const query = searchInput.value.trim();
+  if (!query) return;
+
+  // Get only checked video IDs
+  const checkedBoxes = document.querySelectorAll(".library-check:checked");
+  const videoIds = Array.from(checkedBoxes).map(cb => (cb as HTMLInputElement).value);
+
+  if (videoIds.length === 0) {
+    searchResults.innerHTML = `<p class="text-muted py-2">Select at least one audio to search.</p>`;
+    return;
+  }
+
+  searchResults.innerHTML = `
+    <div class="d-flex align-items-center gap-2 py-3">
+      <span class="spinner-border spinner-border-sm" role="status"></span>
+      <span>Searching ${videoIds.length} audio(s)...</span>
+    </div>
+  `;
+
+  try {
+    const data = await callSearchApi(query, videoIds);
+    if (data.results.length === 0) {
+      searchResults.innerHTML = `<p class="text-muted py-2">No results found.</p>`;
+      return;
+    }
+    searchResults.innerHTML = data.results.map(buildSearchResultHtml).join("");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Search failed.";
+    searchResults.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+  }
+}
+
+
+// --- Show Results ---
+
 function showResult(data: AnalyzeResponse): void {
-  const main = document.querySelector(".app-body") as HTMLElement;
-  const footer = document.querySelector(".app-footer") as HTMLElement;
+  const main = document.getElementById("analyzeTab") as HTMLElement;
+  const footer = document.getElementById("appFooter") as HTMLElement;
   if (footer) footer.style.display = "none";
 
   main.innerHTML = `
@@ -315,7 +507,7 @@ function showResult(data: AnalyzeResponse): void {
       <div id="searchResults"></div>
     </div>
 
-    <!-- Topics (expanded by default, can collapse) -->
+    <!-- Topics -->
     <div class="topics-section">
       <div class="section-toggle" id="topicsToggle">
         <p class="label-muted mb-0">Topics (${data.topics.length})</p>
@@ -326,7 +518,7 @@ function showResult(data: AnalyzeResponse): void {
       </div>
     </div>
 
-    <!-- Full transcript (collapsed by default) -->
+    <!-- Full transcript -->
     <div class="transcript-section">
       <div class="section-toggle" id="transcriptToggle">
         <p class="label-muted mb-0">Full transcript</p>
@@ -351,7 +543,6 @@ function showResult(data: AnalyzeResponse): void {
     if ((e as KeyboardEvent).key === "Enter") handleSearch();
   });
 
-  // Topics section toggle
   document.getElementById("topicsToggle")?.addEventListener("click", () => {
     const list = document.getElementById("topicsList") as HTMLElement;
     const chevron = document.getElementById("topicsChevron") as HTMLElement;
@@ -360,7 +551,6 @@ function showResult(data: AnalyzeResponse): void {
     chevron.classList.toggle("toggle-open", !isVisible);
   });
 
-  // Individual topic expand/collapse (shows summary)
   document.querySelectorAll(".topic-row").forEach((row) => {
     row.addEventListener("click", () => {
       const targetId = row.getAttribute("data-target");
@@ -374,7 +564,6 @@ function showResult(data: AnalyzeResponse): void {
     });
   });
 
-  // "Show full text" buttons inside topics
   document.querySelectorAll(".btn-show-full").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -390,7 +579,6 @@ function showResult(data: AnalyzeResponse): void {
     });
   });
 
-  // Transcript toggle
   document.getElementById("transcriptToggle")?.addEventListener("click", () => {
     const transcript = document.getElementById("fullTranscript") as HTMLElement;
     const chevron = document.getElementById("transcriptChevron") as HTMLElement;
@@ -400,11 +588,11 @@ function showResult(data: AnalyzeResponse): void {
   });
 }
 
-/**
- * Shows an error message.
- */
+
+// --- Error Display ---
+
 function showError(message: string): void {
-  const main = document.querySelector(".app-body") as HTMLElement;
+  const main = document.getElementById("analyzeTab") as HTMLElement;
   const alertHtml = `
     <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
       <i class="bi bi-exclamation-triangle-fill"></i>
@@ -454,7 +642,8 @@ async function handleUseCurrentTab(): Promise<void> {
 }
 
 
-// --- Event Listeners ---
+// --- Initialize ---
+initTabs();
 analyzeBtn.addEventListener("click", handleAnalyze);
 currentTabBtn.addEventListener("click", handleUseCurrentTab);
 urlInput.addEventListener("input", clearValidationError);

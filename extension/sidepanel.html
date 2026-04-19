@@ -25,15 +25,24 @@
 
     <!-- Header -->
     <header class="app-header">
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 mb-2">
         <i class="bi bi-mic icon-logo"></i>
         <span class="app-title">Audio Insight</span>
       </div>
-      <p class="app-subtitle mb-0">Transcribe, search, and explore audio</p>
+
+      <!-- Tab Navigation -->
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tabAnalyze" data-tab="analyze">
+          <i class="bi bi-waveform me-1"></i> Analyze
+        </button>
+        <button class="tab-btn" id="tabLibrary" data-tab="library">
+          <i class="bi bi-collection me-1"></i> Library
+        </button>
+      </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="app-body">
+    <!-- Tab: Analyze -->
+    <main class="app-body tab-content" id="analyzeTab">
 
       <!-- URL Input Section -->
       <section class="mb-4">
@@ -71,8 +80,15 @@
 
     </main>
 
+    <!-- Tab: Library -->
+    <main class="app-body tab-content" id="libraryTab" style="display: none;">
+      <div id="libraryContent">
+        <p class="label-muted">Loading library...</p>
+      </div>
+    </main>
+
     <!-- Footer Info -->
-    <footer class="app-footer">
+    <footer class="app-footer" id="appFooter">
       <div class="info-box">
         <p class="mb-0">
           Paste a YouTube link or audio URL and get topic-segmented

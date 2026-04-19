@@ -50,9 +50,9 @@ def search_sentences(query: str, sentences: list[Sentence], top_k: int = 3) -> l
         score = cosine_similarity(query_embedding, emb.reshape(1, -1))[0][0]
         scored_results.append((score, i))
 
-    # Sort by score (highest first) and take top_k
+# Sort by score (highest first), filter low matches, take top_k
     scored_results.sort(reverse=True)
-    top_results = scored_results[:top_k]
+    top_results = [(score, idx) for score, idx in scored_results if score >= 0.20][:top_k]
 
     # Build SearchResult objects
     results = []

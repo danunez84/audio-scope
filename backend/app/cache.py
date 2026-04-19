@@ -48,3 +48,48 @@ def save_to_cache(url: str, result: dict) -> None:
     cache_file = CACHE_DIR / f"{video_id}.json"
     with open(cache_file, "w") as f:
         json.dump(result, f)
+
+def save_sentences(url: str, sentences: list) -> None:
+    """Saves sentences for search to a separate cache file."""
+    video_id = get_video_id(url)
+    if not video_id:
+        return
+
+    sentences_file = CACHE_DIR / f"{video_id}_sentences.json"
+    sentences_data = [
+        {"text": s.text, "start": s.start, "end": s.end, "speaker": s.speaker}
+        for s in sentences
+    ]
+    with open(sentences_file, "w") as f:
+        json.dump(sentences_data, f)
+
+
+def load_sentences(video_id: str) -> list[dict] | None:
+    """Loads cached sentences for a video ID."""
+    sentences_file = CACHE_DIR / f"{video_id}_sentences.json"
+    if not sentences_file.exists():
+        return None
+
+    with open(sentences_file, "r") as f:
+        return json.load(f)
+
+
+def get_library() -> list[dict]:
+    """Returns a list of all cached audio analyses."""
+    library = []
+    for cache_file in CACHE_DIR.glob("*.json"):
+        # Skip sentence files
+        if cache_file.stem.endswith("_sentences"):
+            continue
+
+        with open(cache_file, "r") as f:
+            data = json.load(f)
+
+        library.append({
+            "video_id": cache_file.stem,
+            "title": data.get("title", "Unknown"),
+            "duration": data.get("duration", 0),
+            "topics_count": len(data.get("topics", [])),
+        })
+
+    return library

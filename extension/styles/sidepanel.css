@@ -32,7 +32,7 @@ body {
 }
 
 .app-header {
-  padding: 20px 20px 16px;
+  padding: 16px 20px 0;
   border-bottom: 1px solid var(--ai-gray-100);
 }
 
@@ -59,10 +59,33 @@ body {
   color: #2C2C2A;
 }
 
-.app-subtitle {
-  font-size: 11px;
+
+/* --- Tab Navigation --- */
+.tab-nav {
+  display: flex;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ai-gray-400);
-  margin-top: 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: var(--ai-gray-600);
+}
+
+.tab-btn.active {
+  color: var(--ai-teal-800);
+  border-bottom-color: var(--ai-teal-400);
 }
 
 
@@ -92,11 +115,11 @@ body {
 
 
 /* --- Search Input --- */
-#searchInput {
+#searchInput, #librarySearchInput {
   font-size: 13px;
 }
 
-#searchInput::placeholder {
+#searchInput::placeholder, #librarySearchInput::placeholder {
   color: var(--ai-gray-400);
 }
 
@@ -250,6 +273,13 @@ body {
   font-size: 11px;
   font-weight: 500;
   color: var(--ai-teal-800);
+}
+
+.search-source {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+  display: block;
+  margin-bottom: 4px;
 }
 
 
@@ -407,6 +437,67 @@ body {
 }
 
 
+/* --- Library --- */
+.library-section {
+  margin-bottom: 16px;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 4px;
+  border: 0.5px solid var(--ai-gray-100);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.library-item:hover {
+  background-color: var(--ai-gray-50);
+}
+
+.library-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.library-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2C2C2A;
+}
+
+.library-item-meta {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+}
+
+.library-item-arrow {
+  font-size: 11px;
+  color: var(--ai-gray-400);
+}
+
+.empty-library {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ai-gray-400);
+}
+
+.empty-library i {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.empty-library p {
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+
+
 /* --- Alert --- */
 .alert-danger {
   font-size: 13px;
@@ -415,4 +506,17 @@ body {
   color: #991B1B;
   border-radius: 8px;
   padding: 12px 16px;
+}
+
+.library-checkbox {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.library-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ai-teal-400);
+  cursor: pointer;
 }
