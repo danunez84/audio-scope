@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.cache import (
     get_cached_result, save_to_cache, save_sentences,
-    load_sentences, get_library, CACHE_DIR
+    load_sentences, get_library, get_video_id, CACHE_DIR
 )
 from app.config import CORS_ORIGINS
 from app.models import AnalyzeRequest, DownloadResponse, ErrorResponse, HealthResponse
@@ -28,7 +28,6 @@ app = FastAPI(
     version="0.4.0",
 )
 
-# CORS — allow Chrome extension and local dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -110,10 +109,22 @@ async def download_audio_endpoint(request: AnalyzeRequest):
 async def analyze_audio(request: AnalyzeRequest):
     """Full pipeline: download → transcribe → segment → summarize → index."""
     try:
+        global _current_sentences
+
         # Check cache first
         cached = get_cached_result(request.url)
         if cached:
             print(f"[CACHE] Returning cached result for: {request.url}")
+            # Load sentences for search
+            video_id = get_video_id(request.url)
+            if video_id:
+                sentences_data = load_sentences(video_id)
+                if sentences_data:
+                    _current_sentences = [
+                        Sentence(text=s["text"], start=s["start"], end=s["end"], speaker=s["speaker"])
+                        for s in sentences_data
+                    ]
+                    print(f"[CACHE] Loaded {len(_current_sentences)} sentences for search")
             return cached
 
         # Step 1: Download audio
@@ -162,7 +173,6 @@ async def analyze_audio(request: AnalyzeRequest):
         print(f"[STEP 5] Indexed {len(all_sentences)} sentences")
 
         # Store for current session search
-        global _current_sentences
         _current_sentences = all_sentences
 
         # Build response data
