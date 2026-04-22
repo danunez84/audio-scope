@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Audio Insight",
+  "name": "AudioScope",
   "version": "0.2.0",
   "description": "Transcribe, segment, summarize, and semantically search audio content.",
   "permissions": [
@@ -11,7 +11,7 @@
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "Open Audio Insight"
+    "default_title": "Open AudioScope"
   },
   "background": {
     "service_worker": "dist/background.js",

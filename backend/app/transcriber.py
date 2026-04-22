@@ -1,5 +1,5 @@
 """
-Audio Insight — Transcriber
+AudioScope — Transcriber
 Calls the VibeVoice-ASR API running on Google Colab for transcription.
 """
 

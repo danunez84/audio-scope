@@ -1,5 +1,5 @@
 // ============================================
-// Audio Insight — Side Panel Logic
+// AudioScope — Side Panel Logic
 // ============================================
 
 // --- Configuration ---

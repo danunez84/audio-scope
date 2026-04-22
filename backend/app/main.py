@@ -1,5 +1,5 @@
 """
-Audio Insight — FastAPI Application
+AudioScope — FastAPI Application
 Main entry point for the backend API.
 """
 

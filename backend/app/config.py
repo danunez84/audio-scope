@@ -1,5 +1,5 @@
 """
-Audio Insight — Configuration
+Audio Scope — Configuration
 Centralized settings for the backend.
 """
 

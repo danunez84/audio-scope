@@ -1,5 +1,5 @@
 """
-Audio Insight — Topic Segmenter
+AudioScope — Topic Segmenter
 Splits transcripts into topics using sentence embeddings and cosine similarity.
 """
 

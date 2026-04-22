@@ -1,5 +1,5 @@
 """
-Audio Insight — Summarizer
+Audio Scope — Summarizer
 Generates extractive summaries for each topic using sentence embeddings.
 """
 

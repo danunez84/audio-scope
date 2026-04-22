@@ -1,5 +1,5 @@
 """
-Audio Insight — Semantic Search
+Audio Scope — Semantic Search
 Searches transcript sentences by meaning using embeddings.
 """
 
